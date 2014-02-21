@@ -1,18 +1,31 @@
-Setup
-Reset code base
-	git reset --hard StartingPoint
-	git clean -fdx
-Reset database
-	Ensure __MigrationsHistory and __Transactions tables are removed from database
-	Ensure Rating column, default constraint and index are removed from HumanResources.Department table
-Setup solution
-	Open solution as Admin
-	Run Get-ExecutionPolicy in Package Manager Console and ensure it returns RemoteSigned
-	Restore NuGet packages
-	Ensure only Local NuGet feed is enabled
-	Ensure AdventureWorksContext  is in clipboard
-	Set Departments as startup page
-	Ensure snippets are loaded
+The demo is broken up into a series of sections that showcase a specific features. Each section has a corresponding slide in the slide deck, which you can use to provide a quick summary of the feature before demoing it. This also helps break up the long demo section of the talk into logical 5-10min chunks, which helps folks keep up to speed.
+
+### One Time Setup
+* You'll need a machine with Visual Studio 2013 installed
+* Install the EF6.1 (or later) Tooling. At the time of writing this demo the tooling was available in Beta form and could be [downloaded from the Microsoft Download Center](http://www.microsoft.com/en-us/download/details.aspx?id=41928).
+* Install [ZoomIt](http://technet.microsoft.com/en-us/sysinternals/bb897434.aspx) and get familiar with how to use it - it's a great tool for making you demos look professional.
+* Clone this Git repo to your local machine
+* Register the code snippets in Visual Studio
+ * Open VS -> Tools -> Code Snippets Manager...
+ * Make sure **Visual C#** is selected in the dropdown and add the **CodeSnippets** directory from your local clone of this repository
+* To insulate yourself against network outages, slow WiFi, etc. I suggest you [setup a local NuGet feed on your machine](http://docs.nuget.org/docs/creating-packages/hosting-your-own-nuget-feeds) that contains all the NuGet packages needed to complete the talk to your local feed.
+ * I usually disable everything but my local feed - nothing worse than getting long pauses due to a slow network. 
+ * The easiest way to get a copy of the required .nupkg files is to complete this demo once whilst online then go to the packages folder of the completed solution and you'll find the .nupkg's nested under the sub-directory for each package. 
+  * You'll notice there are a lot more packages than just the ones you install during the demo. The extras are the ones that are included in the ASP.NET project template - you will need all of them to be able to restore packages when you reset the code base to the starting point. Be sure to copy them all so that you can sucessfully perform the 'Every Time Setup' without a network connection.
+
+### Every Time Setup
+* Reset the code base to the starting solution
+ * How you do this will depend on what Git tools you have installed. Here is how to do it using the Git command line:
+  * Open a console to the local repo directoy and run the following commands 
+  * `git reset --hard StartingPoint`
+  * `git clean -fdx`
+* Reset the **AdventureWorks2012** database using the **ResetDatabase.sql** file in the repo.
+* Run Visual Studio as an administrator (running as an administrator seems to minimize occurrences of the issue mentioned in the next point)
+* Run **Get-ExecutionPolicy** in Package Manager Console (PMC) and ensure it returns **RemoteSigned**
+ * Occasionally PMC sets the **Restricted** execution policy and won't allow running install scripts from the NuGet packages. It's really hard to recover from, **don't skip this step!**
+* Connect to **(localdb)\v11.0** in SQL Server Object Explorer and open the AdventureWorks2012 database (if you have a SKU of Visual Studio which includes SQL Server Object Explorer). If you have a version of VS without it, you should grab [SQL Server Management Studio](http://www.microsoft.com/en-us/download/details.aspx?id=29062) instead.
+  * I recommend dropping all databases except AdventureWorks2012 from LocalDb before the demo - it's just less noise for folks to process.
+* Open the **SourceCode\AdventureWorks.sln** and build the solution. It's good to run it too, just to make sure everything is working.
 
 Tooling Consolidation (OneEF)
 Show existing AdventureWorks2012 database
