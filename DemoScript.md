@@ -14,10 +14,10 @@ The demo is broken up into a series of sections that showcase a specific feature
   * You'll notice there are a lot more packages than just the ones you install during the demo. The extras are the ones that are included in the ASP.NET project template - you will need all of them to be able to restore packages when you reset the code base to the starting point. Be sure to copy them all so that you can sucessfully perform the 'Every Time Setup' without a network connection.
 
 ### Every Time Setup
-* Reset the code base to the starting solution
+* Reset the repo to ensure it's cleaned up from any previous run thru's of the demo
  * How you do this will depend on what Git tools you have installed. Here is how to do it using the Git command line:
   * Open a console to the local repo directoy and run the following commands 
-  * `git reset --hard StartingPoint`
+  * `git reset --hard`
   * `git clean -fdx`
 * Reset the **AdventureWorks2012** database using the **ResetDatabase.sql** file in the repo.
 * Run Visual Studio as an administrator (running as an administrator seems to minimize occurrences of the issue mentioned in the next point)
@@ -25,14 +25,14 @@ The demo is broken up into a series of sections that showcase a specific feature
  * Occasionally PMC sets the **Restricted** execution policy and won't allow running install scripts from the NuGet packages. It's really hard to recover from, **don't skip this step!**
 * Connect to **(localdb)\v11.0** in SQL Server Object Explorer and open the AdventureWorks2012 database (if you have a SKU of Visual Studio which includes SQL Server Object Explorer). If you have a version of VS without it, you should grab [SQL Server Management Studio](http://www.microsoft.com/en-us/download/details.aspx?id=29062) instead.
   * I recommend dropping all databases except AdventureWorks2012 from LocalDb before the demo - it's just less noise for folks to process.
-* Open the **SourceCode\AdventureWorks.sln** and build the solution. It's good to run it too, just to make sure everything is working.
+* Open the **StartingSourceCode\AdventureWorks.sln** and build the solution. It's good to run it too, just to make sure everything is working.
 
 ### Demo 1: Tooling Consolidation
 * Show existing AdventureWorks2012 database
 * Right-click on Models folder -> Add -> New Item -> Data -> ADO.NET Entity Data Model...
- * Enter **AdventureWorks** as the name in the **Add New Item** screen (i.e. before launching the wizard)
- * Complete **Code First to Existing Database** wizard using the **AdventureWorks2012** database
-  * On the select objects screen select all tables and then uncheck the tables in the **dbo** schema
+ * Enter **AdventureWorksContext** as the name in the **Add New Item** screen (i.e. before launching the wizard)
+ * Complete **Code First from database** wizard using the **AdventureWorks2012** database
+ * On the select objects screen select all tables and then uncheck the tables in the **dbo** schema
 * Walk through the generated code, the key points are:
  * Code is close to what we expect folks would write by hand
  * Config only specified where needed
@@ -40,6 +40,7 @@ The demo is broken up into a series of sections that showcase a specific feature
  * Connection string always in config file
 
 Quickly scaffold a controller to show the model in action		
+* Build the solution
 * Right-click on Controllers folder -> Add -> Controller
 * Select MVC 5 Controller with views, using Entity Framework
  * **Controller name:** DepartmentsController
@@ -53,8 +54,10 @@ Quickly scaffold a controller to show the model in action
  * Remove initialization of db field (i.e. you should be left with `private AdventureWorksContext db;`)
 
 Setup MVC and EF to get dependencies from AutoFac
-* Install **Autofac.MVC5** NuGet package
+* Run **Install-Package Autofac.MVC5 -Version 3.1.0** in Package Manager Console
+ * Using version 3.1.0 avoids a lot of flow on upgrades, including upgrading MVC to 5.1
 * Setup Autofac in Global.asax at the top of the Application_Start method | **Code snippet: SetupAutofac**
+ * Resolve the namespaces for ContainerBuilder and AutofacDependencyResolver (right click on the types and select Resolve, or use Ctrl+.)
 * Add an EF dependency resolver that uses Autofac (I just do this below the **MvcApplication** in **Global.asax**) | **Code snippet: DefineAnEfResolverThatResolvesFromAutofac**
 * Wire up EF resolver in Application\_Start (there is a TODO comment in Application_Start showing where to do this).
 ```
@@ -87,8 +90,9 @@ There isn't a lot to actually demonstrate here, so it's more aobut showing the s
 * Run the app, edit a Department, and show the **__Transactions** table that was created in the database
 
 ### Demo 4: Unit Testing
-Most of the steps for this demo are completed in the **AdventureWorks.Tests* project (already included in the starting point code base)
+Most of the steps for this demo are completed in the **AdventureWorks.Tests** project (already included in the starting point code base)
 * Install the **Moq** NuGet package
+ * If you use Package Manager Console to install, make sure you select the test project to install it to 
 * Open the **Controllers\DepartmentsControllerTests.cs** file and implenent the **IndexSortedByName** method as follows:
  * Code Snippet: CreateSomeUsefulTestData
  * `var set = new Mock<DbSet<Blog>>();`
@@ -100,7 +104,7 @@ Most of the steps for this demo are completed in the **AdventureWorks.Tests* pro
 * You'll need to open to **Test Explorer** to see the results - it will fail the verification
 * Add sorting into the Index action of the controller
 ```
-return View(db.Departments.OrderBy(b => b.Name).ToList());
+return View(db.Departments.OrderBy(d => d.Name).ToList());
 ```
 * Re-run the test and it will pass
 
@@ -112,19 +116,23 @@ Giving a good overview of async and explaining/demonstrating that async is about
 ```
 public async Task<ActionResult> Index()
 {
-    return View(await db.Blogs.OrderBy(b => b.Name).ToListAsync());
+    return View(await db.Departments.OrderBy(d => d.Name).ToListAsync());
 }
 ```
 * Update the unit test we wrote to just call Result on the Index action (which will just block and run sync). 
  * Call out that there are actually other updates needed to make the unit test work with async EF calls. The completed source code in this repo includes the updates, but there really isn't enough time to cover them here. You can also point them to [Testing with async queries](http://msdn.com/data/dn314429#async) for more info.
+```
+var result = controller.Index().Result;
+```
 * Run the app and show that everything just works (no need to change view code etc.)
 
 ### Demo 6: Migrations with an existing database
 Bootstrap migrations to treat current model/schema as the starting point.
-* Run **Enable-Migrations** in Package Manager Console
+* Run **Enable-Migrations** in Package Manager Console (PMC)
+ * If you swapped PMC to point to the Test project before, make sure you swap it back now
  * From error message copy paste command to enable for **BloggingContext**
 * Run **Add-Migration Bootstrap -IgnoreChanges**
-* Run Update-Database
+* Run **Update-Database**
 
 Make a change and apply it to the database
 * Add a **Rating** property to **Department** 
