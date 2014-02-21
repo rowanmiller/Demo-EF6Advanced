@@ -123,20 +123,23 @@ public async Task<ActionResult> Index()
 Bootstrap migrations to treat current model/schema as the starting point.
 * Run **Enable-Migrations** in Package Manager Console
  * From error message copy paste command to enable for **BloggingContext**
-* Run **Add-Migration Initial -IgnoreChanges**
+* Run **Add-Migration Bootstrap -IgnoreChanges**
 * Run Update-Database
 
-Add a Code property to Department 
+Make a change and apply it to the database
+* Add a **Rating** property to **Department** 
+```
+public int Rating { get; set; }
+```
+* Run **Add-Migration DepartmentRating**
+* Run **Update-Database**
+* Show updated schema
 
-Run Add-Migration Code
-Run Update-Database
-Show updated schema
-
-[Index] Attribute
-Upgrade to 6.1.0-alpha1
-Add [Index] to Department.Code
-Add-Migration CodeIndex
-Update-Database
+### Demo 7: [Index] Attribute
+* Add **[Index]** to **Department.Rating**
+* Run **Add-Migration RatingIndex**
+* Run **Update-Database**
+* Show index in the database
 
 
 
