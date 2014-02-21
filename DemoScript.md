@@ -27,72 +27,63 @@ The demo is broken up into a series of sections that showcase a specific feature
   * I recommend dropping all databases except AdventureWorks2012 from LocalDb before the demo - it's just less noise for folks to process.
 * Open the **SourceCode\AdventureWorks.sln** and build the solution. It's good to run it too, just to make sure everything is working.
 
-Tooling Consolidation (OneEF)
-Show existing AdventureWorks2012 database
+### Tooling Consolidation
+* Show existing AdventureWorks2012 database
+* Right-click on Models folder -> Add -> New Item -> Data -> ADO.NET Entity Data Model...
+ * Enter **AdventureWorks** as the name in the **Add New Item** screen (i.e. before launching the wizard)
+ * Complete **Code First to Existing Database** wizard using the **AdventureWorks2012** database
+  * On the select objects screen select all tables and then uncheck the tables in the **dbo** schema
+* Walk through the generated code, the key points are:
+ * Code is close to what we expect folks would write by hand
+ * Config only specified where needed
+ * Annotations used where possible
+ * Connection string always in config file
 
-Right-click on Models folder -> Add -> New Item -> Data -> ADO.NET Entity Data Model
-	Use AdventureWorks as the name
-	Ensure connection string name is AdventureWorksContext (affects the context name)
-	Complete Code First to Existing Database wizard to AdventureWorks2012 database
-		
-Walk through the generated code
-	Key points:
-		? Code is close to what we expect folks would write by hand
-		? Config only specified where needed
-		? Annotations used where possible
-		? Connection string always in config file (name=xyz syntax in constructor)
-		
-Right-click on Controllers folder -> Add -> Controller
-	Select MVC 5 Controller with views, using Entity Framework
-	Controller name: DepartmentsController
-	Model class: Department
-	Data context class: AdventureWorksContext
-	
-Run app, navigate to /departments to show everything is working
-Tip: Use Ctrl+F5 to run without the debugger (the debugger adds quite a bit of warm-up time to ASP.NET)
+Quickly scaffold a controller to show the model in action		
+* Right-click on Controllers folder -> Add -> Controller
+* Select MVC 5 Controller with views, using Entity Framework
+ * **Controller name:** DepartmentsController
+ * **Model class:** Department
+ * **Data context class:** AdventureWorksContext
+* Run app, navigate to /departments to show everything is working (there is a Departments link in the site header)
+  * **Tip:** Use **Ctrl+F5** to run without the debugger (the debugger adds quite a bit of warm-up time to ASP.NET)
 
-Dependency Resolution
-Add a constructor to Departments controller - Code snippet: ANewConstructor
-Remove initialization of db field
+### Dependency Resolution
+* Add a constructor to Departments controller | **Code snippet: ANewConstructor**
+ * Remove initialization of db field (i.e. you should be left with `private AdventureWorksContext db;`)
 
-Install Autofac.MVC5 NuGet package
-Setup Autofac in Global.asax Application_Start - Code snippet: SetupAutofac
+Setup MVC and EF to get dependencies from AutoFac
+* Install **Autofac.MVC5** NuGet package
+* Setup Autofac in Global.asax at the top of the Application_Start method | **Code snippet: SetupAutofac**
+* Add an EF dependency resolver that uses Autofac (I just do this below the **MvcApplication** in **Global.asax**) | **Code snippet: DefineAnEfResolverThatResolvesFromAutofac**
+* Wire up EF resolver in Application\_Start (there is a TODO comment in Application_Start showing where to do this).
+```
+DbConfiguration.Loaded += (s, e) => 
+    e.AddDependencyResolver(new AutofacDbDependencyResolver(container), overrideConfigFile: false);
+```
 
-Add an EF dependency resolver that uses Autofac - Code snippet: DefineAnEfResolverThatResolvesFromAutofac
-Wire up EF resolver in Application_Start
-	DbConfiguration.Loaded += (s, e) => 
-	    e.AddDependencyResolver(new AutofacDbDependencyResolver(container), overrideConfigFile: false);
-	
-Install NLog.Config NuGet package
-Open NLog.config and uncomment the default settings (highlighted below)
-Tip: Highlight text and use Ctrl+K, Ctrl+U
-	  <targets>
-	    <!-- add your targets here -->
-	    
-	    <!--
-	    <target xsi:type="File" name="f" fileName="${basedir}/logs/${shortdate}.log"
-	            layout="${longdate} ${uppercase:${level}} ${message}" />
-	    -->
-	  </targets>
-	
-	  <rules>
-	    <!-- add your logging rules here -->
-	    
-	    <!--
-	    <logger name="*" minlevel="Trace" writeTo="f" />
-	    -->
-	  </rules>
+Register a logger dependency that EF will pull from AutoFac	
+* Install **NLog.Config** NuGet package
+* Open the **NLog.config** file that was added to your project and uncomment the default settings
+  * Tip: You can highlight the lines and type **Ctrl+k Ctrl+u**
+```
+<target xsi:type="File" name="f" fileName="${basedir}/logs/${shortdate}.log"
+    layout="${longdate} ${uppercase:${level}} ${message}" />
+```
+```
+<logger name="*" minlevel="Trace" writeTo="f" />
+```
+* Define an EF=>NLog interceptor (I just do this below the **MvcApplication** in **Global.asax**) | **Code snippet: DefineAnEfInterceptorThatLogsToNLog**
+* Register interceptor with Autofac (below the other calls to **Register** at the top of Application_Start)
+```
+builder.Register<IDbInterceptor>((_) => new NLogInterceptor());
+```
+* Run app and hit /departments and navigate around
+* Open directory of MVC project and show the log file from the **\logs** directory
 
-Define an EF=>NLog interceptor - Code snippet: DefineAnEfInterceptorThatLogsToNLog
-Register interceptor with Autofac
-	builder.Register<IDbInterceptor>((_) => new NLogInterceptor());
-
-Run app and hit /departments and navigate around
-Open directory of MVC project and show file from \logs\ directory
-
-Configuring for Azure
-Register Execution strategy and transaction handler - Code snippet: ConfigureDependenciesForSqlAzure
-Run, edit a Department, and show __Transactions table
+### Configuring for Azure
+* Register Execution strategy and transaction handler (below the other calls to **Register** at the top of Application_Start | **Code snippet: ConfigureDependenciesForSqlAzure**
+* Run the app, edit a Department, and show the **__Transactions** table that was created in the database
 
 Unit Testing
 In test project
