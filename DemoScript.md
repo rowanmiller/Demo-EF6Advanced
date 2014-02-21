@@ -5,7 +5,7 @@ The demo is broken up into a series of sections that showcase a specific feature
 * Install the EF6.1 (or later) Tooling. At the time of writing this demo the tooling was available in Beta form and could be [downloaded from the Microsoft Download Center](http://www.microsoft.com/en-us/download/details.aspx?id=41928).
 * Install [ZoomIt](http://technet.microsoft.com/en-us/sysinternals/bb897434.aspx) and get familiar with how to use it - it's a great tool for making you demos look professional.
 * Setup the AdventureWorks database on LocalDb
- * Download the [AdventureWorks data file](https://msftdbprodsamples.codeplex.com/releases/view/55330) and save it somewhere on your local machine.
+ * Download the [AdventureWorks data file](https://msftdbprodsamples.codeplex.com/releases/view/55330) and save it somewhere on your local machine (you want the **AdventureWorks2012 Data File** download).
  * Using [SQL Server Management Studio](http://www.microsoft.com/en-us/download/details.aspx?id=29062) connect to **(localdb)\v11.0**
  * Right click on the **Databases** node and select **Attach...**
  * Click **Add...** and navigate to the data file you downloaded
