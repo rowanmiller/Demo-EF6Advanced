@@ -1,0 +1,215 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<CodeSnippets  xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Shortcut>ANewConstructor</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="csharp">
+        <![CDATA[public DepartmentsController(AdventureWorksContext context)
+        {
+            db = context;
+        }]]>
+      </Code>
+    </Snippet>
+  </CodeSnippet>
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Shortcut>SetupAutofac</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="csharp">
+        <![CDATA[// Create container and register dependencies
+            var builder = new ContainerBuilder();
+            builder.RegisterControllers(typeof(MvcApplication).Assembly);
+            builder.Register<AdventureWorksContext>((_) => new AdventureWorksContext());
+            var container = builder.Build();
+
+            // Wire up MVC to use Autofac to resolve dependencies
+            DependencyResolver.SetResolver(new AutofacDependencyResolver(container));
+
+            // Wire up EF to use Autofac to resolve dependencies
+            // TODO: ??
+            ]]>
+      </Code>
+    </Snippet>
+  </CodeSnippet>
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Shortcut>DefineAnEfResolverThatResolvesFromAutofac</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="csharp">
+        <![CDATA[public class AutofacDbDependencyResolver : IDbDependencyResolver
+    {
+        private ILifetimeScope container;
+
+        public AutofacDbDependencyResolver(ILifetimeScope container)
+        {
+            this.container = container;
+        }
+
+        public object GetService(Type type, object key)
+        {
+            if (container.IsRegistered(type))
+            {
+                return container.Resolve(type);
+            }
+
+            return null;
+        }
+
+        public IEnumerable<object> GetServices(Type type, object key)
+        {
+            if (container.IsRegistered(type))
+            {
+                return new object[] {container.Resolve(type)};
+            }
+
+            return Enumerable.Empty<object>();
+        }
+    }]]>
+      </Code>
+    </Snippet>
+  </CodeSnippet>
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Shortcut>DefineAnEfInterceptorThatLogsToNLog</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="csharp">
+        <![CDATA[public class NLogInterceptor : IDbCommandInterceptor
+    {
+        private static NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
+        public void NonQueryExecuting(DbCommand command, DbCommandInterceptionContext<int> interceptionContext)
+        {
+        }
+
+        public void NonQueryExecuted(DbCommand command, DbCommandInterceptionContext<int> interceptionContext)
+        {
+            LogCommandComplete(command, interceptionContext);
+        }
+
+        public void ReaderExecuting(DbCommand command, DbCommandInterceptionContext<DbDataReader> interceptionContext)
+        {
+        }
+
+        public void ReaderExecuted(DbCommand command, DbCommandInterceptionContext<DbDataReader> interceptionContext)
+        {
+            LogCommandComplete(command, interceptionContext);
+        }
+
+        public void ScalarExecuting(DbCommand command, DbCommandInterceptionContext<object> interceptionContext)
+        {
+        }
+
+        public void ScalarExecuted(DbCommand command, DbCommandInterceptionContext<object> interceptionContext)
+        {
+            LogCommandComplete(command, interceptionContext);
+        }
+
+        private void LogCommandComplete<TResult>(DbCommand command, DbCommandInterceptionContext<TResult> interceptionContext)
+        {
+            if (interceptionContext.Exception == null)
+            {
+                logger.Trace("Command completed with result {0}", interceptionContext.Result);
+                logger.Trace(command.CommandText);
+            }
+            else
+            {
+                logger.WarnException("Command failed", interceptionContext.Exception);
+                logger.Trace(command.CommandText);
+            }
+        }
+    }]]>
+      </Code>
+    </Snippet>
+  </CodeSnippet>
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Shortcut>ConfigureDependenciesForSqlAzure</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="csharp">
+        <![CDATA[builder.Register<Func<IDbExecutionStrategy>>((_) => () => new SqlAzureExecutionStrategy());
+            builder.Register<Func<TransactionHandler>>((_) => () => new CommitFailureHandler());]]>
+      </Code>
+    </Snippet>
+  </CodeSnippet>
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Shortcut>CreateSomeUsefulTestData</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="csharp">
+        <![CDATA[// Create some test data that is not ordered alphabetically
+            var data = new List<Department>
+            {
+                new Department { Name = "CCC" },
+                new Department { Name = "AAA" },
+                new Department { Name = "BBB" }
+            }.AsQueryable();]]>
+      </Code>
+    </Snippet>
+  </CodeSnippet>
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Shortcut>MakeThatMagicLinqStuffWork</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="csharp">
+        <![CDATA[// Wire up LINQ on mock set to use LINQ to Objects against test data
+            set.As<IQueryable<Department>>().Setup(m => m.Provider).Returns(data.Provider);
+            set.As<IQueryable<Department>>().Setup(m => m.Expression).Returns(data.Expression);
+            set.As<IQueryable<Department>>().Setup(m => m.ElementType).Returns(data.ElementType);
+            set.As<IQueryable<Department>>().Setup(m => m.GetEnumerator()).Returns(data.GetEnumerator());]]>
+      </Code>
+    </Snippet>
+  </CodeSnippet>
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Shortcut>SetupAMockContext</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="csharp">
+        <![CDATA[// Create a mock context that returns mock set with test data
+            var context = new Mock<AdventureWorksContext>();
+            context.Setup(c => c.Departments).Returns(set.Object);]]>
+      </Code>
+    </Snippet>
+  </CodeSnippet>
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Shortcut>RunTheTest</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="csharp">
+        <![CDATA[// Create a controller based on mock context and invoke Index action
+            var controller = new DepartmentsController(context.Object);
+            var result = controller.Index();]]>
+      </Code>
+    </Snippet>
+  </CodeSnippet>
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Shortcut>CheckIfEverythingWorkedAsExpected</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="csharp">
+        <![CDATA[// Ensure we get a ViewResult back
+            Assert.IsInstanceOfType(result, typeof(ViewResult));
+            var viewResult = (ViewResult)result;
+
+            // Ensure model is a collection of all Departments ordered by name
+            Assert.IsInstanceOfType(viewResult.Model, typeof(IEnumerable<Department>));
+            var departments = (IEnumerable<Department>)viewResult.Model;
+            Assert.AreEqual(3, departments.Count());
+            Assert.AreEqual("AAA", departments.First().Name, "Results not sorted alphabetically");
+            Assert.AreEqual("BBB", departments.Skip(1).First().Name, "Results not sorted alphabetically");
+            Assert.AreEqual("CCC", departments.Skip(2).First().Name, "Results not sorted alphabetically");]]>
+      </Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>
+
