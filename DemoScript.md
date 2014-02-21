@@ -27,7 +27,7 @@ The demo is broken up into a series of sections that showcase a specific feature
   * I recommend dropping all databases except AdventureWorks2012 from LocalDb before the demo - it's just less noise for folks to process.
 * Open the **SourceCode\AdventureWorks.sln** and build the solution. It's good to run it too, just to make sure everything is working.
 
-### Tooling Consolidation
+### Demo 1: Tooling Consolidation
 * Show existing AdventureWorks2012 database
 * Right-click on Models folder -> Add -> New Item -> Data -> ADO.NET Entity Data Model...
  * Enter **AdventureWorks** as the name in the **Add New Item** screen (i.e. before launching the wizard)
@@ -48,7 +48,7 @@ Quickly scaffold a controller to show the model in action
 * Run app, navigate to /departments to show everything is working (there is a Departments link in the site header)
   * **Tip:** Use **Ctrl+F5** to run without the debugger (the debugger adds quite a bit of warm-up time to ASP.NET)
 
-### Dependency Resolution
+### Demo 2: Dependency Resolution
 * Add a constructor to Departments controller | **Code snippet: ANewConstructor**
  * Remove initialization of db field (i.e. you should be left with `private AdventureWorksContext db;`)
 
@@ -81,67 +81,50 @@ builder.Register<IDbInterceptor>((_) => new NLogInterceptor());
 * Run app and hit /departments and navigate around
 * Open directory of MVC project and show the log file from the **\logs** directory
 
-### Configuring for Azure
+### Demo 3: Configuring for Azure
+There isn't a lot to actually demonstrate here, so it's more aobut showing the settings and talking about what they do.
 * Register Execution strategy and transaction handler (below the other calls to **Register** at the top of Application_Start | **Code snippet: ConfigureDependenciesForSqlAzure**
 * Run the app, edit a Department, and show the **__Transactions** table that was created in the database
 
-Unit Testing
-In test project
-	Install 'Moq'  NuGet package
+### Demo 4: Unit Testing
+Most of the steps for this demo are completed in the **AdventureWorks.Tests* project (already included in the starting point code base)
+* Install the **Moq** NuGet package
+* Open the **Controllers\DepartmentsControllerTests.cs** file and implenent the **IndexSortedByName** method as follows:
+ * Code Snippet: CreateSomeUsefulTestData
+ * `var set = new Mock<DbSet<Blog>>();`
+ * Code Snippet: MakeThatMagicLinqStuffWork
+ * Code Snippet: SetupAMockContext
+ * Code Snippet: RunTheTest
+ * Code Snippet: CheckIfEverythingWorkedAsExpected
+* Run the test (rightly click in the test method and select **Run Tests**)
+* You'll need to open to **Test Explorer** to see the results - it will fail the verification
+* Add sorting into the Index action of the controller
+```
+return View(db.Departments.OrderBy(b => b.Name).ToList());
+```
+* Re-run the test and it will pass
 
-Implement the test explaining each section
-// Create some test data that is not ordered alphabetically	Code Snippet: CreateSomeUsefulTestData
-var data = new List<Blog>
+### Demo 5: Async
+Giving a good overview of async and explaining/demonstrating that async is about freeing up threads and isn't the same as parallelism takes a while. You won't be able to cover all that here. The point of this demo is to show that's it's easy to write async code. If you want a resource to point folks to then I did an [async talk at TechEd in 2013](http://channel9.msdn.com/Events/TechEd/NorthAmerica/2013/DEV-B337).
+* Mark the Index action on BlogsController to be `async` and return `Task<ActionResult>`
+ * Update the query to use `ToListAsync` and `await` on the result
+ * Here is the completed code
+```
+public async Task<ActionResult> Index()
 {
-    new Blog { Name = "CCC" },
-    new Blog { Name = "AAA" },
-    new Blog { Name = "BBB" }
-}.AsQueryable();
+    return View(await db.Blogs.OrderBy(b => b.Name).ToListAsync());
+}
+```
+* Update the unit test we wrote to just call Result on the Index action (which will just block and run sync). 
+ * Call out that there are actually other updates needed to make the unit test work with async EF calls. The completed source code in this repo includes the updates, but there really isn't enough time to cover them here. You can also point them to [Testing with async queries](http://msdn.com/data/dn314429#async) for more info.
+* Run the app and show that everything just works (no need to change view code etc.)
 
-var set = new Mock<DbSet<Blog>>();	Write by hand
-// Wire up LINQ on fake set to use LINQ to Objects against test data	Code Snippet: MakeThatMagicLinqStuffWork
-set.As<IQueryable<Blog>>().Setup(m => m.Provider).Returns(data.Provider);
-set.As<IQueryable<Blog>>().Setup(m => m.Expression).Returns(data.Expression);
-set.As<IQueryable<Blog>>().Setup(m => m.ElementType).Returns(data.ElementType);
-set.As<IQueryable<Blog>>().Setup(m => m.GetEnumerator()).Returns(data.GetEnumerator());
-
-// Create a mock context that returns mock set with test data	Code Snippet: SetupAMockContext
-var context = new Mock<BloggingContext>();	Talk about why we don't use Autofac here
-context.Setup(c => c.Blogs).Returns(set.Object);
-
-// Create a controller based on fake context and invoke Index action	Code Snippet: RunTheTest
-var controller = new BlogsController(context.Object);
-var result = controller.Index();
-
-// Ensure we get a ViewResult back	Code Snippet: CheckIfEverythingWorkedAsExpected
-Assert.IsInstanceOfType(result, typeof(ViewResult));
-var viewResult = (ViewResult)result;
-
-// Ensure model is a collection of all Blogs ordered by name
-Assert.IsInstanceOfType(viewResult.Model, typeof(IEnumerable<Blog>));
-var listings = (IEnumerable<Blog>)viewResult.Model;
-Assert.AreEqual(3, listings.Count());
-Assert.AreEqual("AAA", listings.First().Name, "Blogs not sorted alphabetically");
-Assert.AreEqual("BBB", listings.Skip(1).First().Name, "Blogs not sorted alphabetically");
-Assert.AreEqual("CCC", listings.Skip(2).First().Name, "Blogs not sorted alphabetically");
-
-Run the test (you'll need to open to Test Explorer) - it will fail the verification
-	Add sorting into the Index action (return View(db.Departments.OrderBy(b => b.Name).ToList());)
-	Re-run the test and it will pass
-
-Async
-Make the Index action on BlogsController async
-	public async Task<ActionResult> Index()
-	{
-	    return View(await db.Blogs.OrderBy(b => b.Name).ToListAsync());
-	}
-Run app and show that everything just works (no need to change consuming code)
-
-Migrations with an existing database
-Run Enable-Migrations in Package Manager Console
-From error message copy paste command to enable for BloggingContext
-Run Add-Migration Initial -IgnoreChanges
-Run Update-Database
+### Demo 6: Migrations with an existing database
+Bootstrap migrations to treat current model/schema as the starting point.
+* Run **Enable-Migrations** in Package Manager Console
+ * From error message copy paste command to enable for **BloggingContext**
+* Run **Add-Migration Initial -IgnoreChanges**
+* Run Update-Database
 
 Add a Code property to Department 
 
